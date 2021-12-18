@@ -1,160 +1,99 @@
 import React, { useState, useEffect } from "react";
-import { TextInput, Button } from "react-native-paper";
-import { Text, View, FlatList, TouchableOpacity } from "react-native";
-const Home = ({ navigation }: any) => {
-  const [searchData, setSearchData] = useState<any>("");
-  const [page, setPage] = useState<any>(0);
-  const [newsData, setNewsData] = useState<any>([]);
-  const [endReached, setEndReached] = useState<any>(true);
-  const [filterData, setFilterData] = useState<any>([]);
-  const [flag, setFlag] = useState<any>(true);
+import { Card } from "react-native-paper";
+import { Text, View, FlatList, ActivityIndicator } from "react-native";
 
+const Home = ({ navigation }: any) => {
+  let page = 0;
+
+  const [newsData, setNewsData] = useState<any>([]);
+  const [pageUpdate, setPageUpdate] = useState(1);
   useEffect(() => {
-    getData();
+    getData(0);
+
     setInterval(() => {
-      console.log("called", Date());
-      getData();
-    }, 1000);
+      page = page + 1;
+      getData(page);
+    }, 10000);
   }, []);
 
-  const getData = () => {
+  const getData = async (page: any) => {
     let url = `https://hn.algolia.com/api/v1/search_by_date?tags=story&page=${page}`;
-    console.log(page);
-    fetch(url)
-      .then((response) => response.json())
-      .then((responseJson) => {
-        // console.log("response ", setNewsData(responseJson));
-        // setNewsData([...newsData, ...responseJson.hits]);
-        if(page==0)
-        {
-            console.log("before",page)
+    const res = await fetch(url);
+    const responseJson = await res.json();
+    if (page <= responseJson.nbPages) {
+      setNewsData((newsData: any) => [...responseJson.hits, ...newsData]);
+    }
 
-            setNewsData([...newsData,...responseJson.hits])
-            setPage(page+1)
-            console.log("response for page 0",responseJson.hits)
-            console.log("for page 0",newsData)
-            console.log("after",page)
-        }
-
-        else
-        {
-            console.log("before for other page ",page)
-
-            setNewsData([...newsData,...responseJson.hits]);
-            console.log("for other page",newsData)
-            setPage(page+1)
-            console.log("after for other page",page)
-
-        }
-      });
+    console.log("page no", page);
   };
 
-  // const updateData = () => {
-  //   const pageUpdate: number = page + 1;
-  //   console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-  //   return fetch(
-  //     `https://hn.algolia.com/api/v1/search_by_date?tags=story&page=${pageUpdate}`
-  //   )
-  //     .then((response) => response.json())
-  //     .then((responseJson) => {
-  //       setNewsData([...newsData, ...responseJson.hits]);
-  //     });
-  // };
+  console.log("newsdata", newsData);
+
+  const getData1 = async (pageno: any) => {
+    let url = `https://hn.algolia.com/api/v1/search_by_date?tags=story&page=${pageno}`;
+    const res = await fetch(url);
+    const responseJson = await res.json();
+    if (page <= responseJson.nbPages) {
+      setNewsData((newsData: any) => [...responseJson.hits, ...newsData]);
+      setPageUpdate(pageno + 1);
+    }
+
+    console.log("page no in getdata1", pageno);
+  };
 
   const renderItem = ({ item }: any) => {
     return (
       <View style={{ flex: 1, alignItems: "center", paddingBottom: 10 }}>
-        <TouchableOpacity
+        <Card
           onPress={() => navigation.navigate("Info", { rawJson: item })}
           style={{
             borderWidth: 1,
             borderColor: "black",
             padding: 15,
             margin: 10,
-            width: 350,
+            width: "95%",
           }}
         >
-          <Text>Title : {item.title}</Text>
-          <Text>URL : {item.url}</Text>
-          <Text>Created_At : {item.created_at}</Text>
-          <Text>Author : {item.author}</Text>
-        </TouchableOpacity>
+          <Text>
+            <Text style={{ fontWeight: "bold" }}>Title :</Text> {item.title}
+          </Text>
+          <Text>
+            <Text style={{ fontWeight: "bold" }}>URL :</Text> {item.url}
+          </Text>
+          <Text>
+            <Text style={{ fontWeight: "bold" }}>Created_At :</Text>{" "}
+            {item.created_at}
+          </Text>
+          <Text>
+            <Text style={{ fontWeight: "bold" }}>Author :</Text> {item.author}
+          </Text>
+        </Card>
       </View>
     );
   };
 
-  const searchFilter = (text: any) => {
-    setEndReached(false);
-    const sfilter = newsData.filter((ele: any) => {
-      return (
-        ele.author.toLowerCase().includes(text.toLowerCase()) ||
-        ele.title.toLowerCase().includes(text.toLowerCase())
-      );
-    });
-    setFilterData(sfilter);
-  };
-
-  const searchByDate = () => {
-    setFlag(false);
-    const sdate = newsData;
-    sdate.sort((a: any, b: any) => (a.created_at > b.created_at ? 1 : -1));
-    setNewsData(sdate);
-  };
-
-  const searchByTitle = () => {
-    setFlag(false);
-    const stitle = newsData;
-    stitle.sort((a: any, b: any) => (a.title > b.title ? 1 : -1));
-    setNewsData(stitle);
+  const Render_Footer = () => {
+    return (
+      <View style={{ marginBottom: 20 }}>
+        <ActivityIndicator
+          size="small"
+          color="blue"
+          style={{ height: 50, width: "50" }}
+        />
+      </View>
+    );
   };
 
   return (
     <View style={{ flex: 1 }}>
-      <TextInput
-        mode="outlined"
-        placeholder="Search by Author or Title"
-        style={{ margin: 10 }}
-        value={searchData}
-        onChangeText={(text) => setSearchData(text)}
+      <FlatList
+        data={newsData}
+        renderItem={renderItem}
+        keyExtractor={(index, item) => item.toString()}
+        onEndReached={() => getData1(pageUpdate)}
+        onEndReachedThreshold={0.03}
+        ListFooterComponent={Render_Footer}
       />
-      <Button
-        mode="contained"
-        style={{ margin: 10 }}
-        onPress={() => searchFilter(searchData)}
-        disabled={searchData == "" ? true : false}
-      >
-        SEARCH
-      </Button>
-      <Button mode="contained" style={{ margin: 10 }} onPress={searchByDate}>
-        FILTER BY CREATED_AT
-      </Button>
-      <Button mode="contained" style={{ margin: 10 }} onPress={searchByTitle}>
-        FILTER BY TITLE
-      </Button>
-
-      {searchData.length > 0 ? (
-        flag ? (
-          <FlatList
-            data={filterData}
-            renderItem={renderItem}
-            keyExtractor={(index, item) => item.toString()}
-          />
-        ) : (
-          <FlatList
-            data={filterData}
-            renderItem={renderItem}
-            keyExtractor={(index, item) => item.toString()}
-          />
-        )
-      ) : (
-        <FlatList
-          data={newsData}
-          renderItem={renderItem}
-          keyExtractor={(index, item) => item.toString()}
-          onEndReached={endReached ? () => getData() : null}
-          onEndReachedThreshold={0.03}
-        />
-      )}
     </View>
   );
 };

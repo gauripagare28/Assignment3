@@ -13,4 +13,4 @@ const Info = ({route}:any) =>
         </View>
     )
 }
-export default Info 
+export default Info  
